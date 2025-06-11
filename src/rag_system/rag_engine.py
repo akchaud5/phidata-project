@@ -3,8 +3,6 @@ from typing import List, Dict, Any, Optional, AsyncGenerator
 from phi.assistant import Assistant
 from phi.llm.openai import OpenAIChat
 from phi.llm.anthropic import Claude
-from phi.knowledge.base import KnowledgeBase
-from phi.vectordb.chroma import ChromaDb
 from .vector_store import VectorStore
 from .document_processor import DocumentProcessor
 from .citation_tracker import CitationTracker
@@ -39,18 +37,9 @@ class RAGEngine:
         else:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")
         
-        # Initialize Phidata knowledge base
-        self.knowledge_base = KnowledgeBase(
-            vector_db=ChromaDb(
-                collection="research_knowledge",
-                path=vector_store_path
-            )
-        )
-        
-        # Initialize assistant
+        # Initialize assistant (simplified for current Phidata API)
         self.assistant = Assistant(
             llm=self.llm,
-            knowledge_base=self.knowledge_base,
             description="You are an intelligent research assistant that helps users find and analyze academic papers, code repositories, and other research materials.",
             instructions=[
                 "Always provide accurate and helpful information based on the retrieved context.",
@@ -100,12 +89,8 @@ class RAGEngine:
                     relevance_score=1.0
                 )
             
-            # Add to Phidata knowledge base
-            for chunk in all_chunks:
-                await self.knowledge_base.load_text(
-                    text=chunk['content'],
-                    metadata=chunk
-                )
+            # Note: Knowledge base integration simplified for current Phidata API
+            # Documents are stored in our vector store and semantic search engine
             
             logger.info(f"Added {len(all_chunks)} chunks from {len(documents)} {source_type} documents")
             return chunk_ids
