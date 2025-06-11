@@ -39,7 +39,8 @@ class TestMCPIntegration:
     @pytest.mark.asyncio
     async def test_stop_mcp_server(self, mock_memory):
         """Test stopping MCP server"""
-        mock_process = AsyncMock()
+        mock_process = Mock()
+        mock_process.terminate = Mock()
         mock_process.wait = AsyncMock()
         
         mock_rag_engine = Mock()
@@ -57,12 +58,15 @@ class TestMCPIntegration:
     @pytest.mark.asyncio
     async def test_call_mcp_tool(self, mock_memory):
         """Test calling MCP tool"""
-        mock_process = AsyncMock()
-        mock_process.stdin = AsyncMock()
-        mock_process.stdout = AsyncMock()
-        mock_process.stdout.readline = AsyncMock(
+        mock_stdin = AsyncMock()
+        mock_stdout = AsyncMock()
+        mock_stdout.readline = AsyncMock(
             return_value=b'{"jsonrpc":"2.0","id":1,"result":[{"text":"test result"}]}\n'
         )
+        
+        mock_process = Mock()
+        mock_process.stdin = mock_stdin
+        mock_process.stdout = mock_stdout
         
         mock_rag_engine = Mock()
         integration = MCPIntegration(mock_rag_engine)
@@ -75,8 +79,8 @@ class TestMCPIntegration:
         )
         
         assert result == [{"text": "test result"}]
-        mock_process.stdin.write.assert_called()
-        mock_process.stdin.drain.assert_called()
+        mock_stdin.write.assert_called()
+        mock_stdin.drain.assert_called()
     
     @patch('rag_system.mcp_integration.ConversationMemory')
     @pytest.mark.asyncio

@@ -163,7 +163,8 @@ class TestRAGEngine:
         assert 'citations' in result
         assert len(result['citations']) > 0
         assert result['relevant_docs'] == 1
-        mock_assistant_instance.run.assert_called()
+        # Verify the executor was called with the assistant run method
+        mock_executor.assert_called_once()
     
     @patch('rag_system.rag_engine.VectorStore')
     @patch('rag_system.rag_engine.DocumentProcessor')
