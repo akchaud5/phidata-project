@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Intelligent Research Assistant", description="Graduate-level RAG system with MCP servers")
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize MCP servers on startup"""
+    await start_mcp_servers()
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +40,9 @@ app.add_middleware(
 # Initialize RAG engine and MCP integration
 rag_engine = RAGEngine()
 mcp_integration = MCPIntegration(rag_engine)
+
+# Global flag to track server initialization
+mcp_servers_started = False
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -283,17 +291,26 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 # Background task to start MCP servers
 async def start_mcp_servers():
     """Start all MCP servers"""
+    global mcp_servers_started
+    if mcp_servers_started:
+        return
+        
     servers = [
         ("arxiv-server", "src/mcp_servers/arxiv_server.py"),
         ("github-server", "src/mcp_servers/github_server.py"),
         ("wikipedia-server", "src/mcp_servers/wikipedia_server.py")
     ]
     
+    logger.info("Starting MCP servers...")
     for server_name, server_path in servers:
         try:
             await mcp_integration.start_mcp_server(server_name, server_path)
+            logger.info(f"✅ Started {server_name}")
         except Exception as e:
-            logger.error(f"Failed to start {server_name}: {e}")
+            logger.error(f"❌ Failed to start {server_name}: {e}")
+    
+    mcp_servers_started = True
+    logger.info("MCP server initialization complete")
 
 def get_html_content():
     """Return the HTML content for the web interface"""
@@ -788,8 +805,5 @@ def get_html_content():
     '''
 
 if __name__ == "__main__":
-    # Start MCP servers in background
-    asyncio.create_task(start_mcp_servers())
-    
-    # Run the FastAPI app
+    # Run the FastAPI app (MCP servers will start via startup event)
     uvicorn.run(app, host="0.0.0.0", port=8000)

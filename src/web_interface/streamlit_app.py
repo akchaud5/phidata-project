@@ -90,10 +90,29 @@ if 'mcp_integration' not in st.session_state:
 
 @st.cache_resource
 def initialize_system():
-    """Initialize RAG engine and MCP integration"""
+    """Initialize RAG engine and MCP integration with servers"""
     try:
         rag_engine = RAGEngine()
         mcp_integration = MCPIntegration(rag_engine)
+        
+        # Start MCP servers
+        servers = [
+            ("arxiv-server", "src/mcp_servers/arxiv_server.py"),
+            ("github-server", "src/mcp_servers/github_server.py"),
+            ("wikipedia-server", "src/mcp_servers/wikipedia_server.py")
+        ]
+        
+        async def start_servers():
+            for server_name, server_path in servers:
+                try:
+                    await mcp_integration.start_mcp_server(server_name, server_path)
+                    print(f"✅ Started {server_name}")
+                except Exception as e:
+                    print(f"❌ Failed to start {server_name}: {e}")
+        
+        # Run server initialization
+        asyncio.run(start_servers())
+        
         return rag_engine, mcp_integration
     except Exception as e:
         st.error(f"Failed to initialize system: {e}")
