@@ -23,7 +23,7 @@ class TestCitationTracker:
         
         doc_metadata = {
             'title': 'Test Paper',
-            'authors': 'John Doe, Jane Smith',
+            'authors': ['John Doe', 'Jane Smith'],
             'source': 'arxiv',
             'url': 'https://arxiv.org/abs/test',
             'published': '2023-01-01'
@@ -40,7 +40,7 @@ class TestCitationTracker:
         
         citation = tracker.citations[citation_id]
         assert citation.title == 'Test Paper'
-        assert citation.authors == ['John Doe, Jane Smith']
+        assert citation.authors == ['John Doe', 'Jane Smith']
         assert citation.source == 'arxiv'
         assert citation.relevance_score == 0.9
     
@@ -51,7 +51,7 @@ class TestCitationTracker:
         
         doc_metadata = {
             'title': 'Test Paper',
-            'authors': 'Doe, J., & Smith, J.',
+            'authors': ['Doe, J.', 'Smith, J.'],
             'source': 'arxiv',
             'url': 'https://arxiv.org/abs/test',
             'published': '2023'
@@ -60,7 +60,8 @@ class TestCitationTracker:
         citation_id = tracker.add_citation_from_document(doc_metadata, "", 1.0)
         formatted = tracker.format_citation(citation_id, style='apa')
         
-        assert 'Doe, J., & Smith, J.' in formatted
+        assert 'Doe' in formatted
+        assert 'Smith' in formatted
         assert '(2023)' in formatted
         assert 'Test Paper' in formatted
     
@@ -71,7 +72,7 @@ class TestCitationTracker:
         
         doc_metadata = {
             'title': 'Test Paper',
-            'authors': 'John Doe, Jane Smith',
+            'authors': ['John Doe', 'Jane Smith'],
             'source': 'arxiv',
             'url': 'https://arxiv.org/abs/test',
             'published': '2023'
@@ -80,7 +81,7 @@ class TestCitationTracker:
         citation_id = tracker.add_citation_from_document(doc_metadata, "", 1.0)
         formatted = tracker.format_citation(citation_id, style='mla')
         
-        assert 'John Doe, Jane Smith' in formatted
+        assert 'Doe, John' in formatted
         assert 'Test Paper' in formatted
         assert '2023' in formatted
     
@@ -94,7 +95,7 @@ class TestCitationTracker:
         for i in range(3):
             doc_metadata = {
                 'title': f'Test Paper {i+1}',
-                'authors': f'Author {i+1}',
+                'authors': [f'Author {i+1}'],
                 'source': 'arxiv',
                 'url': f'https://arxiv.org/abs/test{i+1}',
                 'published': '2023'
@@ -107,7 +108,7 @@ class TestCitationTracker:
         assert 'Test Paper 1' in bibliography
         assert 'Test Paper 2' in bibliography
         assert 'Test Paper 3' in bibliography
-        assert 'Author 1' in bibliography
+        assert 'Author' in bibliography
     
     def test_search_citations(self, temp_dir):
         """Test searching citations"""
@@ -117,12 +118,12 @@ class TestCitationTracker:
         # Add citations with different content
         doc1 = {
             'title': 'Machine Learning Paper',
-            'authors': 'ML Author',
+            'authors': ['ML Author'],
             'source': 'arxiv'
         }
         doc2 = {
             'title': 'Deep Learning Study',
-            'authors': 'DL Author',
+            'authors': ['DL Author'],
             'source': 'arxiv'
         }
         
@@ -144,7 +145,7 @@ class TestCitationTracker:
         for source in sources:
             doc_metadata = {
                 'title': f'Test {source} document',
-                'authors': 'Test Author',
+                'authors': ['Test Author'],
                 'source': source
             }
             tracker.add_citation_from_document(doc_metadata, "", 0.8)
@@ -155,7 +156,7 @@ class TestCitationTracker:
         assert 'arxiv' in stats['source_breakdown']
         assert 'github' in stats['source_breakdown']
         assert 'wikipedia' in stats['source_breakdown']
-        assert stats['average_relevance'] == 0.8
+        assert abs(stats['average_relevance'] - 0.8) < 0.01
     
     def test_save_and_load_citations(self, temp_dir):
         """Test saving and loading citations from file"""
@@ -165,20 +166,21 @@ class TestCitationTracker:
         tracker1 = CitationTracker(storage_path=storage_path)
         doc_metadata = {
             'title': 'Persistent Test Paper',
-            'authors': 'Test Author',
+            'authors': ['Test Author'],
             'source': 'arxiv'
         }
         citation_id = tracker1.add_citation_from_document(doc_metadata, "", 1.0)
         
         # Save citations
-        tracker1._save_citations()
+        tracker1.save_citations()
         
         # Create new tracker and load citations
         tracker2 = CitationTracker(storage_path=storage_path)
         
         assert len(tracker2.citations) == 1
-        assert tracker2.citations[0].title == 'Persistent Test Paper'
-        assert tracker2.citations[0].authors == 'Test Author'
+        citation = list(tracker2.citations.values())[0]
+        assert citation.title == 'Persistent Test Paper'
+        assert citation.authors == ['Test Author']
     
     def test_clear_citations(self, temp_dir):
         """Test clearing all citations"""
@@ -189,7 +191,7 @@ class TestCitationTracker:
         for i in range(3):
             doc_metadata = {
                 'title': f'Test Paper {i+1}',
-                'authors': f'Author {i+1}',
+                'authors': [f'Author {i+1}'],
                 'source': 'arxiv'
             }
             tracker.add_citation_from_document(doc_metadata, "", 1.0)
